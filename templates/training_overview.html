@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Training Overview - RRRxProtoPNet{% endblock %}
+
+{% block content %}
+<h1>Training Overview</h1>
+<form id="training-overview-form">
+    <label for="experiment_name">Select Training:</label>
+    <select id="experiment_name" name="experiment_name" required>
+        {% for experiment in experiments %}
+        <option value="{{ experiment }}" {% if experiment == selected_experiment %}selected{% endif %}>
+            {{ experiment }}
+        </option>
+        {% endfor %}
+    </select><br><br>
+</form>
+
+<div id="training-details" class="content-container">
+    <div id="submitted-settings">
+        <h2>Submitted Settings</h2>
+        <pre id="settings-content"></pre>
+    </div>
+    <div id="classification-report">
+        <h2>Classification Report</h2>
+        <pre id="report-content"></pre>
+    </div>
+    <!-- Add the image below the classification report -->
+    <div id="training-metrics" style="text-align: center;">
+    <h2>Training Metrics</h2>
+    <img id="metrics-img" src="" alt="Training Metrics Plot" style="max-width: 95%; height: auto;">
+</div>
+
+    <div id="prototype-visualization">
+        <h2>Prototype Visualization</h2>
+        <label for="image_name">Select Image:</label>
+        <select id="image_name" name="image_name">
+            <!-- Options will be dynamically populated -->
+        </select><br><br>
+        <div id="slider">
+            <img id="proto-img" src="" alt="Prototype Image">
+        </div>
+        <div id="epoch-controls">
+            <button id="prev" onclick="prevEpoch()">Previous</button>
+            <p id="epoch-caption">Epoch: 0</p>
+            <button id="next" onclick="nextEpoch()">Next</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Button -->
+<div style="text-align: center; margin-top: 20px;">
+    <button id="delete-experiment-btn" style="background-color: red; color: white; padding: 10px 20px; border: none; cursor: pointer;">
+        Delete {{ selected_experiment }}
+    </button>
+</div>
+
+<script>
+    document.getElementById('experiment_name').addEventListener('change', function() {
+        loadTrainingDetails(this.value);
+        updateDeleteButton(this.value);  // Update button text when experiment is changed
+    });
+
+    document.getElementById('image_name').addEventListener('change', function() {
+        loadImage();
+    });
+
+    document.getElementById('delete-experiment-btn').addEventListener('click', function() {
+        var experimentName = document.getElementById('experiment_name').value;
+        if (confirm('Are you sure you want to delete experiment "' + experimentName + '"? This action cannot be undone.')) {
+            deleteExperiment(experimentName);
+        }
+    });
+
+    let currentEpoch = 0;
+    let maxEpoch = 0;
+
+    function loadTrainingDetails(experimentName) {
+        fetch(`/get_training_details/${experimentName}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('settings-content').textContent = data.settings;
+            document.getElementById('report-content').textContent = data.report;
+            document.getElementById('metrics-img').src = `/images/saved_models/${experimentName}/train_report.png`;  // Update the metrics image
+            populateImageOptions(data.image_names);
+            updateDeleteButton(experimentName);  // Ensure the button text is updated when loading details
+        });
+    }
+
+    function populateImageOptions(imageNames) {
+        const imageSelect = document.getElementById('image_name');
+        imageSelect.innerHTML = '';
+        imageNames.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.text = name;
+            imageSelect.add(option);
+        });
+        loadImage();
+    }
+
+    function loadImage() {
+        const experimentName = document.getElementById('experiment_name').value;
+        const imageName = document.getElementById('image_name').value;
+        currentEpoch = 0;
+
+        fetch(`/get_max_epoch/${experimentName}/${imageName}`)
+        .then(response => response.json())
+        .then(data => {
+            maxEpoch = data.max_epoch;
+            updateImage();
+        });
+    }
+
+    function updateImage() {
+        const experimentName = document.getElementById('experiment_name').value;
+        const imageName = document.getElementById('image_name').value;
+        const imgElement = document.getElementById('proto-img');
+        const captionElement = document.getElementById('epoch-caption');
+
+        imgElement.src = `/images/saved_models/${experimentName}/proto_vis/${imageName}_${currentEpoch}.jpg`;
+        captionElement.textContent = `Epoch: ${currentEpoch}`;
+    }
+
+    function prevEpoch() {
+        if (currentEpoch > 0) {
+            currentEpoch--;
+            updateImage();
+        }
+    }
+
+    function nextEpoch() {
+        if (currentEpoch < maxEpoch) {
+            currentEpoch++;
+            updateImage();
+        }
+    }
+
+    function updateDeleteButton(experimentName) {
+        const deleteButton = document.getElementById('delete-experiment-btn');
+        deleteButton.textContent = `Delete ${experimentName}`;
+    }
+
+    function deleteExperiment(experimentName) {
+        fetch(`/delete_experiment/${experimentName}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ experiment_name: experimentName })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/overview_page';  // Redirect back to the overview page
+            } else {
+                alert('Failed to delete experiment: ' + data.error);
+            }
+        });
+    }
+
+    // Initial load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTrainingDetails(document.getElementById('experiment_name').value);
+        updateDeleteButton(document.getElementById('experiment_name').value);
+    });
+</script>
+{% endblock %}

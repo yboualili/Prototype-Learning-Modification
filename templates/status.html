@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Training Status - RRRxProtoPNet{% endblock %}
+
+{% block content %}
+<h1>Training Status - {{ settings.experiment_run }}</h1>
+
+<h2>Submitted Settings</h2>
+<ul>
+    <li>Training Mode: {{ settings.tr_mode }}</li>
+    <li>Image Size: {{ settings.img_size }}</li>
+    <li>Number of Classes: {{ settings.num_classes }}</li>
+    <li>Experiment Run: {{ settings.experiment_run }}</li>
+    <li>Data Path: {{ settings.data_path }}</li>
+    <li>Train Batch Size: {{ settings.train_batch_size }}</li>
+    <li>Test Batch Size: {{ settings.test_batch_size }}</li>
+    <li>Train Push Batch Size: {{ settings.train_push_batch_size }}</li>
+    <li>Number of Train Epochs: {{ settings.num_train_epochs }}</li>
+    <li>Number of Warm Epochs: {{ settings.num_warm_epochs }}</li>
+    <li>Push Start Epoch: {{ settings.push_start }}</li>
+    {% if settings.tr_mode == 'mask' and settings.mask_percentage is not none %}
+    <li>Mask Availability: {{ settings.mask_percentage }}%</li>
+    <li>Mask Percentage used: {{ settings.selected_mask_percentage }}%</li>
+    {% endif %}
+</ul>
+
+<h2>Training Logs</h2>
+<div id="log-container">
+    <pre id="logs"></pre>
+</div>
+
+<h2>Latest Prototype Visualization</h2>
+<div id="latest-image-container" style="text-align: center;">
+    <img id="latest-image" src="" alt="Latest Prototype Visualization" style="max-width: 100%; height: auto; display: none;">
+    <p id="no-image-text" style="display: none;">No image available yet</p>
+</div>
+
+<script>
+    function fetchLogs() {
+        fetch('/logs')
+        .then(response => response.text())
+        .then(data => {
+            document.getElementById('logs').innerText = data;
+        });
+    }
+
+    function fetchLatestImage() {
+        fetch('/latest_image')
+        .then(response => response.json())
+        .then(data => {
+            var imageElement = document.getElementById('latest-image');
+            var noImageText = document.getElementById('no-image-text');
+            if (data.image_url) {
+                imageElement.src = data.image_url;
+                imageElement.style.display = 'block';
+                noImageText.style.display = 'none';
+            } else {
+                imageElement.style.display = 'none';
+                noImageText.style.display = 'block';
+            }
+        });
+    }
+
+    function checkTrainingStatus() {
+        fetch('/check_training_complete')
+        .then(response => response.json())
+        .then(data => {
+            if (data.complete) {
+                window.location.href = '{{ url_for("overview_page") }}?experiment_name={{ settings.experiment_run }}';
+            }
+        });
+    }
+
+    setInterval(fetchLogs, 500); // Fetch logs every .5 seconds
+    setInterval(fetchLatestImage, 5000); // Fetch latest image every 5 seconds
+    setInterval(checkTrainingStatus, 2000); // Check training status every 2 seconds
+</script>
+
+<button onclick="window.location.href='{{ url_for('stop_training') }}'">Stop Training</button>
+{% endblock %}

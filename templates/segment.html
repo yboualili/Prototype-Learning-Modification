@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block title %}Segment Images - RRRxProtoPNet{% endblock %}
+
+{% block content %}
+<h1>Segment Images</h1>
+<form id="segmentation-form">
+    <label for="dataset">Select Dataset:</label>
+    <select id="dataset" name="dataset" required>
+        <option value="" disabled selected>Select your option</option>
+        {% for dataset in datasets %}
+        <option value="{{ dataset }}">{{ dataset }}</option>
+        {% endfor %}
+    </select><br>
+
+    <label for="folder">Select Folder:</label>
+    <select id="folder" name="folder" required>
+        <option value="" disabled selected>Select your option</option>
+    </select><br>
+
+    <label for="class">Select Class:</label>
+    <select id="class" name="class" required>
+        <option value="" disabled selected>Select your option</option>
+    </select><br>
+
+    <label for="image">Select Image:</label>
+    <select id="image" name="image" required>
+        <option value="" disabled selected>Select your option</option>
+    </select><br>
+
+    <button type="button" id="perform-initial-segmentation" style="display:none;">Perform Initial Segmentation</button>
+    <button type="button" id="edit-segmentation" style="display:none;">Edit Segmentation</button>
+</form>
+
+<div id="image-display">
+    <!-- Images and editing canvas will be displayed here -->
+</div>
+
+<script>
+    document.getElementById('dataset').addEventListener('change', function() {
+        var dataset = this.value;
+        fetch('/get_structure/' + dataset)
+            .then(response => response.json())
+            .then(data => {
+                var structure = data.structure;
+
+                // Populate folder dropdown
+                var folderSelect = document.getElementById('folder');
+                folderSelect.innerHTML = '<option value="" disabled selected>Select your option</option>';
+                for (var folder in structure) {
+                    var option = document.createElement('option');
+                    option.value = folder;
+                    option.text = folder;
+                    folderSelect.add(option);
+                }
+
+                // Reset class and image dropdowns
+                var classSelect = document.getElementById('class');
+                classSelect.innerHTML = '<option value="" disabled selected>Select your option</option>';
+                var imageSelect = document.getElementById('image');
+                imageSelect.innerHTML = '<option value="" disabled selected>Select your option</option>';
+
+                // Populate class dropdown based on the first folder
+                if (folderSelect.options.length > 1) {
+                    folderSelect.selectedIndex = 1;
+                    populateClassesAndImages(folderSelect.value, structure);
+                }
+
+                // Update classes and images when the folder changes
+                folderSelect.addEventListener('change', function() {
+                    populateClassesAndImages(this.value, structure);
+                });
+            });
+    });
+
+    function populateClassesAndImages(folder, structure) {
+        // Populate class dropdown
+        var classSelect = document.getElementById('class');
+        classSelect.innerHTML = '<option value="" disabled selected>Select your option</option>';
+        for (var cls in structure[folder]) {
+            var option = document.createElement('option');
+            option.value = cls;
+            option.text = cls;
+            classSelect.add(option);
+        }
+
+        // Populate image dropdown based on the first class
+        if (classSelect.options.length > 1) {
+            classSelect.selectedIndex = 1;
+            populateImages(classSelect.value, structure[folder]);
+        }
+
+        // Update images when the class changes
+        classSelect.addEventListener('change', function() {
+            populateImages(this.value, structure[folder]);
+        });
+    }
+
+    function populateImages(cls, folderStructure) {
+        // Populate image dropdown
+        var imageSelect = document.getElementById('image');
+        imageSelect.innerHTML = '<option value="" disabled selected>Select your option</option>';
+        var images = folderStructure[cls];
+        images.forEach(function(image) {
+            var option = document.createElement('option');
+            option.value = image;
+            option.text = image;
+            imageSelect.add(option);
+        });
+
+        if (imageSelect.options.length > 1) {
+            imageSelect.selectedIndex = 1;
+            loadImageAndMask();
+        }
+
+        // Update image when the image changes
+        imageSelect.addEventListener('change', function() {
+            loadImageAndMask();
+        });
+    }
+
+    function loadImageAndMask() {
+        var dataset = document.getElementById('dataset').value;
+        var folder = document.getElementById('folder').value;
+        var cls = document.getElementById('class').value;
+        var image = document.getElementById('image').value;
+
+        if (dataset && folder && cls && image) {
+            fetch(`/get_image_mask?dataset=${dataset}&folder=${folder}&class=${cls}&image=${image}`)
+            .then(response => response.json())
+            .then(data => {
+                var imageDisplay = document.getElementById('image-display');
+                imageDisplay.innerHTML = '';
+                var imageContainer = document.createElement('div');
+                imageContainer.className = 'image-container';
+
+                // Display the original image
+                var imgElement = document.createElement('img');
+                imgElement.src = `/images/${data.image_path}`;
+                imgElement.alt = 'Selected Image';
+                imageContainer.appendChild(imgElement);
+
+                if (data.mask_exists) {
+                    // Display the masked image and show the edit button
+                    var maskedImageElement = document.createElement('img');
+                    maskedImageElement.src = `/masked_image?dataset=${dataset}&folder=${folder}&class=${cls}&image=${image}`;
+                    maskedImageElement.alt = 'Image with Mask Overlay';
+                    imageContainer.appendChild(maskedImageElement);
+                    imageContainer.classList.add('double-image');
+
+                    // Show the Edit Segmentation button and hide the Perform Initial Segmentation button
+                    document.getElementById('edit-segmentation').style.display = 'block';
+                    document.getElementById('perform-initial-segmentation').style.display = 'none';
+                } else {
+                    imageContainer.classList.add('single-image');
+                    // Show the Perform Initial Segmentation button and hide the Edit Segmentation button
+                    document.getElementById('perform-initial-segmentation').style.display = 'block';
+                    document.getElementById('edit-segmentation').style.display = 'none';
+                }
+
+                imageDisplay.appendChild(imageContainer);
+            });
+        }
+    }
+
+    // Handle Perform Initial Segmentation button click
+document.getElementById('perform-initial-segmentation').addEventListener('click', function() {
+    var dataset = document.getElementById('dataset').value;
+    var folder = document.getElementById('folder').value;
+    var cls = document.getElementById('class').value;
+    var image = document.getElementById('image').value;
+
+    if (dataset && folder && cls && image) {
+        // Show the loading overlay
+        document.getElementById('loading-overlay').style.display = 'block';
+
+        // Perform initial segmentation via POST request
+        fetch('/segment_image', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                'dataset': dataset,
+                'folder': folder,
+                'class': cls,
+                'image': image
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide the loading overlay
+            document.getElementById('loading-overlay').style.display = 'none';
+
+            if (data.success) {
+                // Reload the images to show the newly generated mask
+                loadImageAndMask();
+            } else {
+                alert("Segmentation failed: " + data.error);
+            }
+        })
+        .catch(error => {
+            // Hide the loading overlay and handle the error
+            document.getElementById('loading-overlay').style.display = 'none';
+            alert("An error occurred: " + error);
+        });
+    }
+});
+
+    // Handle Edit Segmentation button click
+    document.getElementById('edit-segmentation').addEventListener('click', function() {
+        var button = this;
+        var editing = button.getAttribute('data-editing') === 'true';
+        var dataset = document.getElementById('dataset').value;
+        var folder = document.getElementById('folder').value;
+        var cls = document.getElementById('class').value;
+        var image = document.getElementById('image').value;
+
+        if (dataset && folder && cls && image) {
+            if (editing) {
+                // Switch to view mode
+                loadImageAndMask();
+                button.textContent = 'Edit Segmentation';
+                button.setAttribute('data-editing', 'false');
+                button.style.backgroundColor = ''; // Reset color
+                document.getElementById('negative-points-container').style.display = 'none'; // Hide negative points toggle
+            } else {
+                // Switch to edit mode without showing the spinner
+                enterEditingMode(dataset, folder, cls, image).then(() => {
+                    // Ensure the negative points toggle is visible after entering edit mode
+                    document.getElementById('negative-points-container').style.display = 'block';
+                });
+                button.textContent = 'View Segmentation';
+                button.setAttribute('data-editing', 'true');
+                button.style.backgroundColor = '#00876c'; // Change color to indicate editing
+            }
+        }
+    });
+
+
+    function enterEditingMode(dataset, folder, cls, image) {
+    return new Promise((resolve, reject) => {
+        fetch(`/images/${dataset}/${folder}/${cls}/${image}`)
+        .then(response => response.blob())
+        .then(blob => {
+            var url = URL.createObjectURL(blob);
+            var img = new Image();
+            img.src = url;
+            img.onload = function() {
+                URL.revokeObjectURL(url); // Free memory
+
+                // Display the editing canvas
+                displayEditingCanvas(img, dataset, folder, cls, image);
+                resolve(); // Resolve the promise when done
+            };
+        })
+        .catch(error => reject(error)); // Reject in case of error
+    });
+}
+
+
+function displayEditingCanvas(img, dataset, folder, cls, image) {
+    var imageDisplay = document.getElementById('image-display');
+    imageDisplay.innerHTML = '';
+    var imageContainer = document.createElement('div');
+    imageContainer.className = 'image-display-container';
+
+    // Add the image to the canvas
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+    imageContainer.appendChild(canvas);
+    imageDisplay.appendChild(imageContainer);
+
+    // Add the toggle switch container
+    var negPointsContainer = document.createElement('div');
+    negPointsContainer.id = 'negative-points-container';
+    negPointsContainer.style.display = 'none'; // Initially hidden
+    negPointsContainer.style.textAlign = 'center'; // Center the toggle switch
+    negPointsContainer.style.marginTop = '10px'; // Add some margin for spacing
+
+    var checkboxLabel = document.createElement('label');
+    checkboxLabel.classList.add('switch'); // Add the switch class for styling
+
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'neg-points';
+
+    var slider = document.createElement('span');
+    slider.classList.add('slider', 'round');
+
+    checkboxLabel.appendChild(checkbox);
+    checkboxLabel.appendChild(slider);
+
+    // Create a text label for the toggle switch
+    var label = document.createElement('span');
+    label.classList.add('label');
+    label.textContent = 'Negative Point';  // Set the text to "Negative Point"
+    label.style.marginLeft = '10px'; // Add some spacing between the toggle and the text
+
+    var labelContainer = document.createElement('div');
+    labelContainer.style.display = 'flex';
+    labelContainer.style.alignItems = 'center';
+    labelContainer.style.justifyContent = 'center';
+
+    labelContainer.appendChild(checkboxLabel);
+    labelContainer.appendChild(label);
+
+    negPointsContainer.appendChild(labelContainer);
+    imageDisplay.appendChild(negPointsContainer);
+
+    // Allow users to add points for segmentation
+    canvas.addEventListener('click', function(event) {
+        var rect = canvas.getBoundingClientRect();
+        var x = event.clientX - rect.left;
+        var y = event.clientY - rect.top;
+        var neg = document.getElementById('neg-points').checked;
+
+        // Draw the point
+        ctx.fillStyle = neg ? 'rgba(255, 0, 0, 0.5)' : 'rgba(0, 255, 0, 0.5)';
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Save the point in session storage
+        var points = JSON.parse(sessionStorage.getItem('sam_points')) || [];
+        points.push({ x: x, y: y, neg: neg });
+        sessionStorage.setItem('sam_points', JSON.stringify(points));
+    });
+
+    // Add a button to trigger segmentation with the added points
+    var segmentButton = document.createElement('button');
+    segmentButton.textContent = 'Perform Segmentation';
+    segmentButton.addEventListener('click', function() {
+        performSegmentationWithPoints(dataset, folder, cls, image);
+    });
+    imageDisplay.appendChild(segmentButton);
+}
+
+
+
+    // Handle Perform Segmentation button click during editing
+function performSegmentationWithPoints(dataset, folder, cls, image) {
+    var points = JSON.parse(sessionStorage.getItem('sam_points')) || [];
+    var sam_point = points.map(p => [p.x, p.y]);
+    var sam_label = points.map(p => p.neg ? -1 : 1);
+
+    if (dataset && folder && cls && image) {
+        // Show the loading overlay
+        document.getElementById('loading-overlay').style.display = 'block';
+
+        // Perform segmentation with the points
+        fetch('/perform_segmentation_with_points', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                dataset: dataset,
+                folder: folder,
+                cls: cls,
+                image: image,
+                sam_point: sam_point,
+                sam_label: sam_label
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide the loading overlay
+            document.getElementById('loading-overlay').style.display = 'none';
+
+            if (data.success) {
+                // Display the new mask
+                loadImageAndMask();
+            } else {
+                alert("Segmentation failed: " + data.error);
+            }
+        })
+        .catch(error => {
+            // Hide the loading overlay and handle the error
+            document.getElementById('loading-overlay').style.display = 'none';
+            alert("An error occurred: " + error);
+        });
+    }
+}
+
+</script>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Generating Segmentation</div>
+</div>
+
+{% endblock %}

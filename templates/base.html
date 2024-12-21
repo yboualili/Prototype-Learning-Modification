@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <nav>
+        <a href="{{ url_for('home') }}">
+            <img src="{{ url_for('static', filename='Logo_KIT.png') }}" alt="KIT Logo" class="logo-left">
+        </a>
+        <div>
+            <a href="{{ url_for('dataset_page') }}">Datasets</a>
+            <a href="{{ url_for('train_page') }}">Training</a>
+            <a href="{{ url_for('overview_page') }}">Results</a>
+            <a href="{{ url_for('prediction_page') }}">Prediction</a>
+            <a href="{{ url_for('segment_page') }}">Segmentation</a>
+        </div>
+        <a href="{{ url_for('home') }}">
+            <img src="{{ url_for('static', filename='IRL_Logo.png') }}" alt="IRL Logo" class="logo-right">
+        </a>
+    </nav>
+  </header>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+        {% for category, message in messages %}
+          <li class="{{ category }}">{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

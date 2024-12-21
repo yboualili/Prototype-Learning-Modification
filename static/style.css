@@ -1,0 +1,358 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+header {
+    background-color: white;
+    padding: 10px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+}
+
+nav a {
+    text-decoration: none;
+    color: black;
+    margin: 0 15px;
+    font-weight: bold;
+}
+
+nav .logo-left, nav .logo-right {
+    height: 80px; /* Increased size for the logos */
+}
+
+.container {
+    width: 80%;
+    margin: 20px auto;
+    background-color: white;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+h1, h2, p {
+    text-align: center;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+ul li {
+    padding: 8px 0;
+}
+
+#log-container {
+    border: 1px solid #ddd;
+    padding: 10px;
+    height: 300px;
+    overflow-y: scroll;
+    margin: 20px 0;
+}
+
+#latest-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+    flex-direction: column; /* Ensures that the image and text are stacked vertically */
+}
+
+button {
+    background-color: #00876c;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    display: block;
+    margin: 20px auto;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #006b55;
+}
+
+button.editing {
+    background-color: #44696f;
+}
+
+label, input, select {
+    display: block;
+    width: 100%;
+    margin: 5px 0;
+}
+
+form button {
+    width: auto;
+    display: inline-block;
+    margin: 20px 0 0 0;
+}
+
+table th, table td {
+    text-align: center;  /* Center text horizontally */
+    vertical-align: middle;  /* Center text vertically */
+}
+
+table {
+    margin: auto;
+    border-collapse: collapse;
+    width: 60%;
+    text-align: left;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+th {
+    background-color: #f2f2f2;
+    text-align: center;  /* Ensures the header text is centered */
+}
+
+.flashes {
+    list-style-type: none;
+    padding: 0;
+    margin: 20px auto;
+    width: 60%;
+    text-align: center;
+}
+
+.flashes li {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.flashes .error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.flashes .success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+form label, form input, form select, form button {
+    margin-bottom: 10px;
+}
+
+.image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px; /* Adjust spacing between images */
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.image-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+.image-container.single-image img {
+    max-width: 90%;
+}
+
+.image-container.double-image img {
+    max-width: 45%;
+}
+
+.image-container canvas {
+    max-width: 90%; /* When editing, canvas takes up more space */
+    height: auto;
+}
+
+.image-display-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+/* Toggle Switch CSS */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin: 10px auto; /* Center the switch */
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 34px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+.label {
+    position: absolute;
+    right: -100px;
+    top: 7px;
+    font-size: 14px;
+}  
+
+#negative-points-container {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.content-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-top: 20px; /* Increased margin to separate from the dropdown */
+}
+
+#classification-report {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#prototype-visualization {
+    width: 45%;
+}
+
+#slider {
+    text-align: center;
+    position: relative;
+}
+
+#slider button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#proto-img {
+    max-width: 100%;
+    height: auto;
+}
+
+#epoch-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+}
+
+#epoch-controls p {
+    margin: 0 10px;
+    display: inline-block;
+}
+
+#prev, #next {
+    background-color: #00876c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    margin: 0 10px;
+}
+
+#prev:hover, #next:hover {
+    background-color: #006b55;
+}
+
+/* The loading overlay */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Grey background with transparency */
+    z-index: 1000;
+    text-align: center;
+}
+
+/* The spinner */
+.spinner {
+    border: 16px solid #f3f3f3; /* Light grey */
+    border-top: 16px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    animation: spin 2s linear infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Animation for the spinner */
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Text below the spinner */
+.loading-text {
+    position: absolute;
+    top: 65%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 18px;
+}
